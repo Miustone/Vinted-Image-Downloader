@@ -8,8 +8,16 @@ from playwright.sync_api import sync_playwright
 from tqdm import tqdm
 
 def sanitize_folder_name(name):
-    """Removes invalid characters for directory names."""
-    return re.sub(r'[\\/*?:"<>|]', "", name).strip()
+    """Removes invalid characters and line breaks for directory names."""
+    if not name:
+        return "unnamed_item"
+    # Replace newlines, carriage returns, and tabs with spaces
+    name = re.sub(r'[\r\n\t]+', ' ', name)
+    # Remove forbidden Windows filename characters
+    name = re.sub(r'[\\/*?:"<>|]', "", name)
+    # Replace multiple spaces with a single space
+    name = re.sub(r'\s+', ' ', name)
+    return name.strip()
 
 def download_image(url, folder_path, filename):
     """Downloads a single image file."""
@@ -94,23 +102,19 @@ def download_vinted_user(profile_url, output_dir="downloads", category_filter=No
 
         with tqdm(desc="[1/2] Fetching items", unit=" items", leave=True) as pbar:
             while True:
-                # Automatisches geschmeidiges Scrollen nach unten
                 page.evaluate("window.scrollBy(0, 800);")
                 time.sleep(0.8)
 
-                # Gelegentlich ganz nach unten springen, um Vinted's Infinite Scroll Trigger auszulösen
                 pbar.n = len(captured_items)
                 pbar.refresh()
 
                 current_count = len(captured_items)
                 if current_count == last_item_count:
                     no_new_items_attempts += 1
-                    # Wenn kurz keine neuen Daten kommen, einen tiefen Scroll bis zum Seitenende erzwingen
                     if no_new_items_attempts % 5 == 0:
                         page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                         time.sleep(2.5)
                     
-                    # Erst wenn nach 15 Versuchen absolut keine neuen Artikel mehr dazukommen, beenden
                     if no_new_items_attempts >= 15:
                         break
                 else:
@@ -156,7 +160,7 @@ def download_vinted_user(profile_url, output_dir="downloads", category_filter=No
     print(f"\n[✔] Done! All images saved to: '{os.path.abspath(output_dir)}'")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Vinted Bulk Image Downloader with Category Filter")
+    parser = argparse.ArgumentParser(description="Vinted Image Downloader - Bulk Image Downloader with Category Filter")
     parser.add_argument("url", nargs="?", help="URL of the Vinted user profile")
     parser.add_argument("-c", "--category", default=None, help="Filter by category or keyword")
     parser.add_argument("-o", "--output", default="downloads", help="Output directory")
