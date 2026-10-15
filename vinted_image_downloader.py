@@ -4,6 +4,7 @@ import sys
 import time
 import argparse
 import requests
+from datetime import datetime
 from playwright.sync_api import sync_playwright
 from tqdm import tqdm
 
@@ -11,22 +12,125 @@ def sanitize_folder_name(name):
     """Removes invalid characters and line breaks for directory names."""
     if not name:
         return "unnamed_item"
-    # Replace newlines, carriage returns, and tabs with spaces
     name = re.sub(r'[\r\n\t]+', ' ', name)
-    # Remove forbidden Windows filename characters
     name = re.sub(r'[\\/*?:"<>|]', "", name)
-    # Replace multiple spaces with a single space
     name = re.sub(r'\s+', ' ', name)
     return name.strip()
 
-def download_image(url, folder_path, filename):
-    """Downloads a single image file."""
+def resolve_user_to_url(user_input, domain="vinted.de"):
+    """
+    Converts a raw input (URL, ID, or raw Username) into a fully valid Vinted profile URL.
+    Uses Vinted's internal user lookup API if a raw username is provided.
+    """
+    user_input = user_input.strip()
+
+    # 1. Full URL provided
+    if user_input.startswith("http://") or user_input.startswith("https://"):
+        return user_input
+
+    # Strip leading '@' if present
+    if user_input.startswith("@"):
+        user_input = user_input[1:]
+
+    # 2. Input contains numeric ID or ID-Username pattern (e.g. '12345678' or '12345678-username')
+    if re.match(r'^\d+(-.+)?$', user_input):
+        return f"https://www.{domain}/member/{user_input}"
+
+    # 3. Pure Username provided -> Resolve via Vinted API Lookup
+    print(f"[*] Looking up User ID for username '{user_input}' via Vinted API...")
+    try:
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*"
+        })
+        
+        # Get initial session cookies
+        session.get(f"https://www.{domain}", timeout=5)
+        
+        # Query user API
+        api_url = f"https://www.{domain}/api/v2/users?search_text={user_input}"
+        res = session.get(api_url, timeout=5)
+        
+        if res.status_code == 200:
+            data = res.json()
+            users = data.get("users", [])
+            for u in users:
+                # Find exact username match
+                if str(u.get("login", "")).lower() == user_input.lower():
+                    user_id = u.get("id")
+                    login = u.get("login")
+                    full_url = f"https://www.{domain}/member/{user_id}-{login}"
+                    print(f"[*] Match found: {full_url}")
+                    return full_url
+            
+            # Fallback to first search result if exact string match fails
+            if users:
+                user_id = users[0].get("id")
+                login = users[0].get("login")
+                full_url = f"https://www.{domain}/member/{user_id}-{login}"
+                print(f"[*] Using closest match: {full_url}")
+                return full_url
+
+    except Exception as e:
+        print(f"[!] API user lookup failed ({e}). Falling back to URL construction.")
+
+    # Direct fallback
+    return f"https://www.{domain}/member/{user_input}"
+
+def extract_clean_username(profile_url, page_title, captured_items):
+    """Extracts the clean username without IDs."""
+    for item in captured_items.values():
+        user_info = item.get("user") or item.get("user_login")
+        if isinstance(user_info, dict) and user_info.get("login"):
+            return sanitize_folder_name(user_info.get("login"))
+        elif isinstance(user_info, str):
+            return sanitize_folder_name(user_info)
+
+    if page_title and "-" in page_title:
+        title_name = page_title.split("-")[0].strip()
+        if title_name and "vinted" not in title_name.lower():
+            return sanitize_folder_name(title_name)
+
+    match = re.search(r'/member/(?:\d+-)?([^/?#]+)', profile_url)
+    if match:
+        raw_name = match.group(1)
+        clean_name = re.sub(r'^\d+-', '', raw_name)
+        return sanitize_folder_name(clean_name)
+
+    return "vinted_user"
+
+def parse_item_date(item):
+    """Extracts creation date timestamp from item metadata."""
+    ts = item.get("created_at_ts") or item.get("created_at")
+    
+    if isinstance(ts, (int, float)):
+        if ts > 10000000000:
+            ts = ts / 1000
+        dt = datetime.fromtimestamp(ts)
+    elif isinstance(ts, str):
+        try:
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except Exception:
+            dt = datetime.now()
+    else:
+        dt = datetime.now()
+        
+    date_str = dt.strftime("%Y-%m-%d")
+    return dt, date_str
+
+def download_image(url, folder_path, filename, item_datetime=None):
+    """Downloads a single image file and sets its file modification timestamp."""
     try:
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             filepath = os.path.join(folder_path, filename)
             with open(filepath, "wb") as f:
                 f.write(response.content)
+            
+            if item_datetime:
+                timestamp = item_datetime.timestamp()
+                os.utime(filepath, (timestamp, timestamp))
             return True
     except Exception as e:
         tqdm.write(f"   [!] Error downloading ({url}): {e}")
@@ -48,8 +152,10 @@ def matches_category(item, category_filter):
     
     return (filter_lower in title) or (filter_lower in category_title) or (filter_lower in brand)
 
-def download_vinted_user(profile_url, output_dir="downloads", category_filter=None, headless=False):
+def download_vinted_user(user_input, output_dir="downloads", category_filter=None, headless=False):
+    profile_url = resolve_user_to_url(user_input)
     captured_items = {}
+    page_title = ""
 
     with sync_playwright() as p:
         print("[*] Launching installed browser (Chrome/Edge)...")
@@ -72,7 +178,6 @@ def download_vinted_user(profile_url, output_dir="downloads", category_filter=No
         )
         page = context.new_page()
 
-        # Catch ANY JSON response containing an "items" array from Vinted API
         def handle_response(response):
             try:
                 if "json" in response.headers.get("content-type", ""):
@@ -88,8 +193,8 @@ def download_vinted_user(profile_url, output_dir="downloads", category_filter=No
 
         print(f"[*] Opening profile: {profile_url}")
         page.goto(profile_url, wait_until="networkidle")
+        page_title = page.title()
 
-        # Accept Cookie Banner if present
         try:
             page.click("#onetrust-accept-btn-handler", timeout=3000)
             print("[*] Cookie banner accepted.")
@@ -128,7 +233,6 @@ def download_vinted_user(profile_url, output_dir="downloads", category_filter=No
         print("[!] No items found on this profile.")
         return
 
-    # --- APPLY CATEGORY / KEYWORD FILTER ---
     all_items = list(captured_items.values())
     if category_filter:
         filtered_items = [item for item in all_items if matches_category(item, category_filter)]
@@ -140,28 +244,30 @@ def download_vinted_user(profile_url, output_dir="downloads", category_filter=No
         print("[!] No items matched your category filter.")
         return
 
-    # Extract username/ID for folder structure
-    username_match = re.search(r'/member/(.+)', profile_url)
-    username = username_match.group(1) if username_match else "vinted_user"
+    clean_username = extract_clean_username(profile_url, page_title, captured_items)
+    print(f"[*] Downloading content for user: '{clean_username}'")
 
-    # --- DOWNLOAD IMAGES ---
     for item in tqdm(filtered_items, desc="[2/2] Downloading images", unit=" items"):
         item_id = item.get("id")
+        dt_obj, date_str = parse_item_date(item)
+        
         title = sanitize_folder_name(item.get("title", f"item_{item_id}"))
-        item_folder = os.path.join(output_dir, username, f"{item_id}_{title}")
+        
+        folder_name = f"{date_str}_{item_id}_{title}"
+        item_folder = os.path.join(output_dir, clean_username, folder_name)
         os.makedirs(item_folder, exist_ok=True)
 
         photos = item.get("photos", [])
         for idx, photo in enumerate(photos):
             img_url = photo.get("full_size_url") or photo.get("url")
             if img_url:
-                download_image(img_url, item_folder, f"image_{idx + 1}.jpg")
+                download_image(img_url, item_folder, f"image_{idx + 1}.jpg", item_datetime=dt_obj)
 
-    print(f"\n[✔] Done! All images saved to: '{os.path.abspath(output_dir)}'")
+    print(f"\n[✔] Done! All images saved to: '{os.path.abspath(os.path.join(output_dir, clean_username))}'")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Vinted Image Downloader - Bulk Image Downloader with Category Filter")
-    parser.add_argument("url", nargs="?", help="URL of the Vinted user profile")
+    parser.add_argument("user", nargs="?", help="URL or Username/ID of the Vinted profile")
     parser.add_argument("-c", "--category", default=None, help="Filter by category or keyword")
     parser.add_argument("-o", "--output", default="downloads", help="Output directory")
     parser.add_argument("--headless", action="store_true", help="Run browser in background")
@@ -169,9 +275,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        url = args.url
-        if not url:
-            url = input("Enter Vinted profile URL: ").strip()
+        user_input = args.user
+        if not user_input:
+            user_input = input("Enter Vinted profile URL or Username: ").strip()
 
         category = args.category
         if not category and len(sys.argv) <= 1:
@@ -179,10 +285,10 @@ if __name__ == "__main__":
             if cat_input:
                 category = cat_input
 
-        if url:
-            download_vinted_user(url, output_dir=args.output, category_filter=category, headless=args.headless)
+        if user_input:
+            download_vinted_user(user_input, output_dir=args.output, category_filter=category, headless=args.headless)
         else:
-            print("[!] No URL provided.")
+            print("[!] No user or URL provided.")
 
     except Exception as e:
         print(f"\n[!] An error occurred during execution: {e}")

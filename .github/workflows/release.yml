@@ -3,14 +3,14 @@ name: Build and Release
 on:
   push:
     branches:
-      - main  # Runs on every push/merge to 'main'
+      - main
 
 permissions:
-  contents: write  # Required to create releases and upload assets
+  contents: write
 
 jobs:
   build-and-release:
-    runs-on: windows-latest  # Builds natively on Windows runner
+    runs-on: windows-latest
 
     steps:
       - name: Checkout Code
@@ -40,13 +40,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag_name }}
-          name: Vinted Downloader ${{ steps.tag.outputs.tag_name }}
-          body: |
-            Automated Release for commit `${{ github.sha }}`.
-            
-            **Installation:**
-            1. Download `VintedImageDownloader.exe` below.
-            2. Double-click to run on Windows (No Python required).
+          name: Vinted Image Downloader ${{ steps.tag.outputs.tag_name }}
+          generate_release_notes: true 
           files: dist/VintedImageDownloader.exe
           draft: false
           prerelease: false
