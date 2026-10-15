@@ -4,6 +4,7 @@ import sys
 import time
 import argparse
 import requests
+import ctypes
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 from tqdm import tqdm
@@ -17,26 +18,109 @@ def sanitize_folder_name(name):
     name = re.sub(r'\s+', ' ', name)
     return name.strip()
 
+def parse_item_date(item):
+    """
+    Deeply searches Vinted item metadata for creation timestamps.
+    Falls back to photo creation date or ID estimation if omitted.
+    """
+    ts = None
+
+    # 1. Direct item creation / update timestamps
+    for key in ["created_at_ts", "created_at", "updated_at_ts", "user_updated_at_ts"]:
+        if item.get(key):
+            ts = item.get(key)
+            break
+
+    # 2. Check nested photo object creation timestamps
+    if not ts and item.get("photos") and isinstance(item["photos"], list):
+        for photo in item["photos"]:
+            if isinstance(photo, dict):
+                for p_key in ["high_resolution", "full_size"]:
+                    if photo.get(p_key) and isinstance(photo[p_key], dict):
+                        ts = photo[p_key].get("timestamp")
+                        if ts:
+                            break
+                if not ts:
+                    ts = photo.get("created_at") or photo.get("timestamp")
+                if ts:
+                    break
+
+    # Convert retrieved timestamp to datetime object
+    dt = None
+    if isinstance(ts, (int, float)):
+        if ts > 10000000000:  # Convert milliseconds to seconds
+            ts = ts / 1000
+        dt = datetime.fromtimestamp(ts)
+    elif isinstance(ts, str):
+        try:
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+    if not dt:
+        dt = datetime.now()
+
+    date_str = dt.strftime("%Y-%m-%d")
+    return dt, date_str
+
+def set_file_creation_time(filepath, dt):
+    """Sets both modification and creation time for files under Windows."""
+    try:
+        timestamp = dt.timestamp()
+        # Set Modification and Access time
+        os.utime(filepath, (timestamp, timestamp))
+
+        # Set Windows Creation Time via ctypes if running on Windows
+        if os.name == 'nt':
+            try:
+                # Windows File Creation Time handle
+                from ctypes import wintypes
+                FILE_WRITE_ATTRIBUTES = 0x0100
+                OPEN_EXISTING = 3
+                
+                # Convert timestamp to Windows FILETIME (100-nanosecond intervals since Jan 1, 1601)
+                filetime = int((timestamp + 11644473600) * 10000000)
+                ctime = wintypes.FILETIME(filetime & 0xFFFFFFFF, filetime >> 32)
+                
+                handle = ctypes.windll.kernel32.CreateFileW(
+                    filepath, FILE_WRITE_ATTRIBUTES, 0, None, OPEN_EXISTING, 0, None
+                )
+                if handle != -1:
+                    ctypes.windll.kernel32.SetFileTime(handle, ctypes.byref(ctime), None, None)
+                    ctypes.windll.kernel32.CloseHandle(handle)
+            except Exception:
+                pass
+    except Exception as e:
+        pass
+
+def download_image(url, folder_path, filename, item_datetime=None):
+    """Downloads a single image file and sets its timestamps."""
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            filepath = os.path.join(folder_path, filename)
+            with open(filepath, "wb") as f:
+                f.write(response.content)
+            
+            if item_datetime:
+                set_file_creation_time(filepath, item_datetime)
+            return True
+    except Exception as e:
+        tqdm.write(f"   [!] Error downloading ({url}): {e}")
+    return False
+
 def resolve_user_to_url(user_input, domain="vinted.de"):
-    """
-    Converts a raw input (URL, ID, or raw Username) into a fully valid Vinted profile URL.
-    Uses Vinted's internal user lookup API if a raw username is provided.
-    """
     user_input = user_input.strip()
 
-    # 1. Full URL provided
     if user_input.startswith("http://") or user_input.startswith("https://"):
         return user_input
 
-    # Strip leading '@' if present
     if user_input.startswith("@"):
         user_input = user_input[1:]
 
-    # 2. Input contains numeric ID or ID-Username pattern (e.g. '12345678' or '12345678-username')
     if re.match(r'^\d+(-.+)?$', user_input):
         return f"https://www.{domain}/member/{user_input}"
 
-    # 3. Pure Username provided -> Resolve via Vinted API Lookup
     print(f"[*] Looking up User ID for username '{user_input}' via Vinted API...")
     try:
         session = requests.Session()
@@ -45,10 +129,7 @@ def resolve_user_to_url(user_input, domain="vinted.de"):
             "Accept": "application/json, text/plain, */*"
         })
         
-        # Get initial session cookies
         session.get(f"https://www.{domain}", timeout=5)
-        
-        # Query user API
         api_url = f"https://www.{domain}/api/v2/users?search_text={user_input}"
         res = session.get(api_url, timeout=5)
         
@@ -56,7 +137,6 @@ def resolve_user_to_url(user_input, domain="vinted.de"):
             data = res.json()
             users = data.get("users", [])
             for u in users:
-                # Find exact username match
                 if str(u.get("login", "")).lower() == user_input.lower():
                     user_id = u.get("id")
                     login = u.get("login")
@@ -64,7 +144,6 @@ def resolve_user_to_url(user_input, domain="vinted.de"):
                     print(f"[*] Match found: {full_url}")
                     return full_url
             
-            # Fallback to first search result if exact string match fails
             if users:
                 user_id = users[0].get("id")
                 login = users[0].get("login")
@@ -75,11 +154,9 @@ def resolve_user_to_url(user_input, domain="vinted.de"):
     except Exception as e:
         print(f"[!] API user lookup failed ({e}). Falling back to URL construction.")
 
-    # Direct fallback
     return f"https://www.{domain}/member/{user_input}"
 
 def extract_clean_username(profile_url, page_title, captured_items):
-    """Extracts the clean username without IDs."""
     for item in captured_items.values():
         user_info = item.get("user") or item.get("user_login")
         if isinstance(user_info, dict) and user_info.get("login"):
@@ -100,44 +177,7 @@ def extract_clean_username(profile_url, page_title, captured_items):
 
     return "vinted_user"
 
-def parse_item_date(item):
-    """Extracts creation date timestamp from item metadata."""
-    ts = item.get("created_at_ts") or item.get("created_at")
-    
-    if isinstance(ts, (int, float)):
-        if ts > 10000000000:
-            ts = ts / 1000
-        dt = datetime.fromtimestamp(ts)
-    elif isinstance(ts, str):
-        try:
-            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-        except Exception:
-            dt = datetime.now()
-    else:
-        dt = datetime.now()
-        
-    date_str = dt.strftime("%Y-%m-%d")
-    return dt, date_str
-
-def download_image(url, folder_path, filename, item_datetime=None):
-    """Downloads a single image file and sets its file modification timestamp."""
-    try:
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            filepath = os.path.join(folder_path, filename)
-            with open(filepath, "wb") as f:
-                f.write(response.content)
-            
-            if item_datetime:
-                timestamp = item_datetime.timestamp()
-                os.utime(filepath, (timestamp, timestamp))
-            return True
-    except Exception as e:
-        tqdm.write(f"   [!] Error downloading ({url}): {e}")
-    return False
-
 def matches_category(item, category_filter):
-    """Checks if the keyword matches title, brand, or category data."""
     if not category_filter:
         return True
 
