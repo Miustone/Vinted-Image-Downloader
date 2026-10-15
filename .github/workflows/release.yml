@@ -3,21 +3,21 @@ name: Build and Release
 on:
   push:
     branches:
-      - main  # Führt den Workflow bei jedem Push / Merge auf 'main' aus
+      - main  # Runs on every push/merge to 'main'
 
 permissions:
-  contents: write  # Erforderlich, um Releases zu erstellen und Dateien hochzuladen
+  contents: write  # Required to create releases and upload assets
 
 jobs:
   build-and-release:
-    runs-on: windows-latest  # Baut die .exe nativ unter Windows
+    runs-on: windows-latest  # Builds natively on Windows runner
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/python-導@v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -33,7 +33,6 @@ jobs:
       - name: Generate Automatic Tag & Version
         id: tag
         run: |
-          # Erstellt ein eindeutiges Tag basierend auf Datum und Build-Nummer (z.B. v1.2026.10.15-1)
           $VERSION = "v1.$(Get-Date -Format 'yyyy.MM.dd')-${{ github.run_number }}"
           echo "tag_name=$VERSION" >> $env:GITHUB_OUTPUT
 
