@@ -1,0 +1,55 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main  # Führt den Workflow bei jedem Push / Merge auf 'main' aus
+
+permissions:
+  contents: write  # Erforderlich, um Releases zu erstellen und Dateien hochzuladen
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest  # Baut die .exe nativ unter Windows
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/python-導@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Executable with PyInstaller
+        run: |
+          python -m PyInstaller --onefile --name "VintedDownloader" vinted_downloader.py
+
+      - name: Generate Automatic Tag & Version
+        id: tag
+        run: |
+          # Erstellt ein eindeutiges Tag basierend auf Datum und Build-Nummer (z.B. v1.2026.10.15-1)
+          $VERSION = "v1.$(Get-Date -Format 'yyyy.MM.dd')-${{ github.run_number }}"
+          echo "tag_name=$VERSION" >> $env:GITHUB_OUTPUT
+
+      - name: Create GitHub Release and Upload .exe
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          name: Vinted Downloader ${{ steps.tag.outputs.tag_name }}
+          body: |
+            Automated Release for commit `${{ github.sha }}`.
+            
+            **Installation:**
+            1. Download `VintedDownloader.exe` below.
+            2. Double-click to run on Windows (No Python required).
+          files: dist/VintedDownloader.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
