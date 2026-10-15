@@ -28,7 +28,7 @@ jobs:
 
       - name: Build Executable with PyInstaller
         run: |
-          python -m PyInstaller --onefile --name "VintedDownloader" vinted_downloader.py
+          python -m PyInstaller --onefile --name "VintedImageDownloader" vinted_image_downloader.py
 
       - name: Generate Automatic Tag & Version
         id: tag
@@ -45,9 +45,9 @@ jobs:
             Automated Release for commit `${{ github.sha }}`.
             
             **Installation:**
-            1. Download `VintedDownloader.exe` below.
+            1. Download `VintedImageDownloader.exe` below.
             2. Double-click to run on Windows (No Python required).
-          files: dist/VintedDownloader.exe
+          files: dist/VintedImageDownloader.exe
           draft: false
           prerelease: false
         env:

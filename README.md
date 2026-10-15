@@ -63,7 +63,7 @@ python -m pip install playwright requests tqdm PyInstaller
 You can start using the tool immediately without building an `.exe`:
 
 ```cmd
-python vinted_downloader.py
+python vinted_image_downloader.py
 ```
 
 - The script will prompt you to enter a Vinted user profile URL (e.g., `https://www.vinted.com/member/12345678-username`).
@@ -76,11 +76,11 @@ If you want to create a portable `.exe` file to share or run without opening Pyt
 
 1. In the same Command Prompt window, run:
    ```cmd
-   python -m PyInstaller --onefile --name "VintedDownloader" vinted_downloader.py
+   python -m PyInstaller --onefile --name "VintedImageDownloader" vinted_image_downloader.py
    ```
 2. Wait a minute for PyInstaller to finish building the executable.
 3. Open the newly created `dist` folder inside your project directory.
-4. You will find **`VintedDownloader.exe`** inside! You can move this file anywhere or share it.
+4. You will find **`VintedImageDownloader.exe`** inside! You can move this file anywhere or share it.
 
 ---
 
@@ -89,7 +89,7 @@ If you want to create a portable `.exe` file to share or run without opening Pyt
 For power users who prefer non-interactive automation or batch scripts:
 
 ```cmd
-VintedDownloader.exe https://www.vinted.com/member/12345678-username -c "shoes" -o "MyDownloads" --headless
+VintedImageDownloader.exe https://www.vinted.com/member/12345678-username -c "shoes" -o "MyDownloads" --headless
 ```
 
 ### Available Command Line Flags:
