@@ -2,9 +2,23 @@
 
 All notable changes to the Vinted Image Downloader project will be documented in this file.
 
+## [1.4.0] - 2026-10-15
+
+### ✨ New Features
+* **Seamless Headless Browser Execution:** The browser now runs entirely in the background without popping up any windows, offering a clean, distraction-free experience.
+* **Minimalist Black & White GUI:** Added an ultra-clean, dark-themed graphical desktop interface when opening the application directly.
+* **Metadata Export (`info.json`):** Generates a detailed JSON sidecar file for each item (title, price, brand, size, description, favorites, view count, and original product URL).
+* **Smart Multi-Threaded Downloads:** Accelerated image downloads up to 4x using dynamic worker threads with automatic retry logic.
+* **Skip / Resume Support:** Automatically detects existing images and skips already downloaded items to avoid redundant network usage.
+* **Maximum Image Quality:** Automatically upgrades image URLs to the highest available resolution tier (`/f800/`).
+
+### ⚡ Performance & Usability
+* Full backward compatibility with Command Line Interface (CLI) parameters and automated execution.
+
+
 ## [1.3.1] - 2026-10-15
 ### 🐛 Fixed
-* **Workflow Auto-Release on Push
+* **Workflow:** Auto-Release on Push
 
 ## [1.3.0] - 2026-10-15
 
