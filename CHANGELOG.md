@@ -6,26 +6,26 @@ All notable changes to the Vinted Image Downloader project will be documented in
 ## [1.6.0] - 2026-10-16
 
 ### 📁 Dynamic Filename Resolution
-* **Original Filename Extraction:** Recursively inspects Vinted API metadata for explicit upload filenames (e.g., `original_filename`, `upload_file_name`, `client_file_name`, `source_filename`) to preserve original photo names whenever provided by Vinted[cite: 2].
-* **HTTP Header Fallback:** Extracts filenames from `Content-Disposition` HTTP response headers as a secondary naming source[cite: 2].
-* **CDN & ID Fallbacks:** Intelligently falls back to CDN URL path basenames, photo IDs (`photo_<id>.jpg`), or index-based names (`image_<index>.jpg`) when no original filename is present[cite: 2].
-* **OS-Safe Naming & Collision Control:** Automatically sanitizes invalid file characters, resolves duplicate filename collisions with index suffixes, and guards against reserved Windows system names (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`)[cite: 2].
+* **Original Filename Extraction:** Recursively inspects Vinted API metadata for explicit upload filenames (e.g., `original_filename`, `upload_file_name`, `client_file_name`, `source_filename`) to preserve original photo names whenever provided by Vinted.
+* **HTTP Header Fallback:** Extracts filenames from `Content-Disposition` HTTP response headers as a secondary naming source.
+* **CDN & ID Fallbacks:** Intelligently falls back to CDN URL path basenames, photo IDs (`photo_<id>.jpg`), or index-based names (`image_<index>.jpg`) when no original filename is present.
+* **OS-Safe Naming & Collision Control:** Automatically sanitizes invalid file characters, resolves duplicate filename collisions with index suffixes, and guards against reserved Windows system names (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`).
 
 ### 📊 Photo Metadata & EXIF Export (`photo_metadata.json`)
-* **Optional Extended Metadata Export:** Added a toggleable setting (`save_photo_metadata`) to export a detailed `photo_metadata.json` file per item folder[cite: 2].
-* **In-Memory Image & EXIF Inspection (`_inspect_image_content`):** Analyzes downloaded image bytes to capture exact pixel dimensions ($W \times H$), image format, color mode, file size, and embedded EXIF tags (camera make, model, ISO, exposure, etc.) using Pillow or raw binary headers[cite: 2].
-* **🔒 Privacy Protection:** Automatically filters out sensitive camera location data (`GPSInfo`) and private maker notes from EXIF exports to safeguard photographer privacy[cite: 2].
-* **HTTP Diagnostic Tracking:** Records technical download metadata including final HTTP status codes, Content-Type, Content-Length, ETags, Last-Modified timestamps, and source URLs[cite: 2].
+* **Optional Extended Metadata Export:** Added a toggleable setting (`save_photo_metadata`) to export a detailed `photo_metadata.json` file per item folder.
+* **In-Memory Image & EXIF Inspection (`_inspect_image_content`):** Analyzes downloaded image bytes to capture exact pixel dimensions ($W \times H$), image format, color mode, file size, and embedded EXIF tags (camera make, model, ISO, exposure, etc.) using Pillow or raw binary headers.
+* **🔒 Privacy Protection:** Automatically filters out sensitive camera location data (`GPSInfo`) and private maker notes from EXIF exports to safeguard photographer privacy.
+* **HTTP Diagnostic Tracking:** Records technical download metadata including final HTTP status codes, Content-Type, Content-Length, ETags, Last-Modified timestamps, and source URLs.
 
 ### 📝 Item Metadata Deep Parsing (`info.json`)
-* **Deep Property Extraction:** Implemented recursive fallback lookups (`_first_nonempty_value`) across nested API schemas to ensure fields like `brand`, `category`, `description`, `size`, `condition/status`, `views`, and `favorites` are reliably populated even when API payloads vary[cite: 2].
+* **Deep Property Extraction:** Implemented recursive fallback lookups (`_first_nonempty_value`) across nested API schemas to ensure fields like `brand`, `category`, `description`, `size`, `condition/status`, `views`, and `favorites` are reliably populated even when API payloads vary.
 
 ### ⚡ Reliability & Atomic File Writes
-* **Atomic File Updates:** Downloads images to isolated `.tmp` files before performing atomic replacements (`os.replace`), preventing corrupted or partial files if a download is interrupted[cite: 2].
-* **Smart HD Re-Use:** Automatically verifies if an existing local file already satisfies high-resolution criteria ($1200 \times 1600\text{px}+$), bypassing unnecessary re-downloads while updating metadata[cite: 2].
+* **Atomic File Updates:** Downloads images to isolated `.tmp` files before performing atomic replacements (`os.replace`), preventing corrupted or partial files if a download is interrupted.
+* **Smart HD Re-Use:** Automatically verifies if an existing local file already satisfies high-resolution criteria ($1200 \times 1600\text{px}+$), bypassing unnecessary re-downloads while updating metadata.
 
 ### 🎨 GUI Improvements
-* **Extended Settings Controls:** Added a new checkbutton in the *Settings* tab to toggle **`photo_metadata.json`** generation alongside **`info.json`** export[cite: 2].
+* **Extended Settings Controls:** Added a new checkbutton in the *Settings* tab to toggle **`photo_metadata.json`** generation alongside **`info.json`** export.
 
 ---
 

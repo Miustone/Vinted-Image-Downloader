@@ -6,17 +6,17 @@ A powerful, fast, and automated desktop tool designed to bulk-download high-reso
 
 ## ✨ Features
 
-- **Tabbed Monochrome Dark Mode GUI & CLI:** Features a minimalist desktop interface (Tkinter-based) with tabbed navigation (*User Profile Downloader*, *Direct URL Archive*, and *Settings*) alongside full CLI support[cite: 4].
-- **Dual Mode Downloading (Profiles & Direct Links):** Seamlessly process entire user closets or target individual Vinted listing URLs—including active, sold, or archived items[cite: 4].
-- **Maximum Quality Image Engine:** In-memory byte-level dimension verification ($1200\times1600\text{px}+$ / original resolution) that automatically scores photo candidates and upgrades existing lower-quality thumbnails ($600\times800\text{px}$) on disk[cite: 4].
-- **Dynamic & Original Filename Extraction:** Preserves authentic uploaded filenames directly from Vinted API fields or `Content-Disposition` headers, with fallback photo-ID naming, duplicate collision handling, and OS-safe filename sanitization[cite: 4].
-- **Clean & Comprehensive Item Metadata (`info.json`):** Generates structured JSON sidecar files with deep property resolution (`_first_nonempty_value`) to eliminate `null` values across product titles, descriptions, categories, brands, prices, sizes, condition states, favorites, view counts, and original creation dates[cite: 4].
-- **Technical Photo & EXIF Metadata Export (`photo_metadata.json`):** Optionally captures detailed image technicals, including pixel dimensions, color modes, file sizes, HTTP diagnostic headers, and camera EXIF data[cite: 4].
-- **🔒 Privacy-Conscious EXIF Processing:** Automatically strips sensitive GPS location data (`GPSInfo`) and private maker notes from photo metadata exports[cite: 4].
-- **Smart Username & ID Auto-Lookup:** Supports flexible inputs including full profile URLs (`https://www.vinted.de/member/...`), handle syntax (`@username`), raw usernames, or numeric user IDs[cite: 4].
-- **Preserved Upload Timestamps:** Folder naming scheme formatted as `YYYY-MM-DD_ItemID_Title`, applying exact item upload timestamps directly to Windows & Linux file attributes (`os.utime` + Win32 API)[cite: 4].
-- **Multi-Threaded Performance & Settings:** Fully configurable parallel download threads (1–16 workers), custom output directory paths, and minimum image dimension filters to skip small UI icons/logos[cite: 4].
-- **Category & Keyword Closet Filtering:** Quickly filter profile downloads by specific keywords or categories (e.g., "Nike", "Dresses", "Jacket")[cite: 4].
+- **Tabbed Monochrome Dark Mode GUI & CLI:** Features a minimalist desktop interface (Tkinter-based) with tabbed navigation (*User Profile Downloader*, *Direct URL Archive*, and *Settings*) alongside full CLI support.
+- **Dual Mode Downloading (Profiles & Direct Links):** Seamlessly process entire user closets or target individual Vinted listing URLs—including active, sold, or archived items.
+- **Maximum Quality Image Engine:** In-memory byte-level dimension verification ($1200\times1600\text{px}+$ / original resolution) that automatically scores photo candidates and upgrades existing lower-quality thumbnails ($600\times800\text{px}$) on disk.
+- **Dynamic & Original Filename Extraction:** Preserves authentic uploaded filenames directly from Vinted API fields or `Content-Disposition` headers, with fallback photo-ID naming, duplicate collision handling, and OS-safe filename sanitization.
+- **Clean & Comprehensive Item Metadata (`info.json`):** Generates structured JSON sidecar files with deep property resolution (`_first_nonempty_value`) to eliminate `null` values across product titles, descriptions, categories, brands, prices, sizes, condition states, favorites, view counts, and original creation dates.
+- **Technical Photo & EXIF Metadata Export (`photo_metadata.json`):** Optionally captures detailed image technicals, including pixel dimensions, color modes, file sizes, HTTP diagnostic headers, and camera EXIF data.
+- **🔒 Privacy-Conscious EXIF Processing:** Automatically strips sensitive GPS location data (`GPSInfo`) and private maker notes from photo metadata exports.
+- **Smart Username & ID Auto-Lookup:** Supports flexible inputs including full profile URLs (`https://www.vinted.de/member/...`), handle syntax (`@username`), raw usernames, or numeric user IDs.
+- **Preserved Upload Timestamps:** Folder naming scheme formatted as `YYYY-MM-DD_ItemID_Title`, applying exact item upload timestamps directly to Windows & Linux file attributes (`os.utime` + Win32 API).
+- **Multi-Threaded Performance & Settings:** Fully configurable parallel download threads (1–16 workers), custom output directory paths, and minimum image dimension filters to skip small UI icons/logos.
+- **Category & Keyword Closet Filtering:** Quickly filter profile downloads by specific keywords or categories (e.g., "Nike", "Dresses", "Jacket").
 
 ---
 
