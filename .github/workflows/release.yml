@@ -28,7 +28,7 @@ jobs:
 
       - name: Build Executable with PyInstaller
         run: |
-          python -m PyInstaller --onefile --name "VintedImageDownloader" vinted_image_downloader.py
+          python -m PyInstaller --onefile --noconfirm --windowed --name "VintedImageDownloader" vinted_image_downloader.py
 
       - name: Parse Version & Changelog Section
         id: parse_changelog

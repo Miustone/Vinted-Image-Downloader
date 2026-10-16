@@ -2,6 +2,49 @@
 
 All notable changes to the Vinted Image Downloader project will be documented in this file.
 
+
+## [1.6.0] - 2026-10-16
+
+### 📁 Dynamic Filename Resolution
+* **Original Filename Extraction:** Recursively inspects Vinted API metadata for explicit upload filenames (e.g., `original_filename`, `upload_file_name`, `client_file_name`, `source_filename`) to preserve original photo names whenever provided by Vinted[cite: 2].
+* **HTTP Header Fallback:** Extracts filenames from `Content-Disposition` HTTP response headers as a secondary naming source[cite: 2].
+* **CDN & ID Fallbacks:** Intelligently falls back to CDN URL path basenames, photo IDs (`photo_<id>.jpg`), or index-based names (`image_<index>.jpg`) when no original filename is present[cite: 2].
+* **OS-Safe Naming & Collision Control:** Automatically sanitizes invalid file characters, resolves duplicate filename collisions with index suffixes, and guards against reserved Windows system names (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`)[cite: 2].
+
+### 📊 Photo Metadata & EXIF Export (`photo_metadata.json`)
+* **Optional Extended Metadata Export:** Added a toggleable setting (`save_photo_metadata`) to export a detailed `photo_metadata.json` file per item folder[cite: 2].
+* **In-Memory Image & EXIF Inspection (`_inspect_image_content`):** Analyzes downloaded image bytes to capture exact pixel dimensions ($W \times H$), image format, color mode, file size, and embedded EXIF tags (camera make, model, ISO, exposure, etc.) using Pillow or raw binary headers[cite: 2].
+* **🔒 Privacy Protection:** Automatically filters out sensitive camera location data (`GPSInfo`) and private maker notes from EXIF exports to safeguard photographer privacy[cite: 2].
+* **HTTP Diagnostic Tracking:** Records technical download metadata including final HTTP status codes, Content-Type, Content-Length, ETags, Last-Modified timestamps, and source URLs[cite: 2].
+
+### 📝 Item Metadata Deep Parsing (`info.json`)
+* **Deep Property Extraction:** Implemented recursive fallback lookups (`_first_nonempty_value`) across nested API schemas to ensure fields like `brand`, `category`, `description`, `size`, `condition/status`, `views`, and `favorites` are reliably populated even when API payloads vary[cite: 2].
+
+### ⚡ Reliability & Atomic File Writes
+* **Atomic File Updates:** Downloads images to isolated `.tmp` files before performing atomic replacements (`os.replace`), preventing corrupted or partial files if a download is interrupted[cite: 2].
+* **Smart HD Re-Use:** Automatically verifies if an existing local file already satisfies high-resolution criteria ($1200 \times 1600\text{px}+$), bypassing unnecessary re-downloads while updating metadata[cite: 2].
+
+### 🎨 GUI Improvements
+* **Extended Settings Controls:** Added a new checkbutton in the *Settings* tab to toggle **`photo_metadata.json`** generation alongside **`info.json`** export[cite: 2].
+
+---
+
+## [1.5.0] - 2026-10-16
+
+### 🚀 Major Improvements & Features
+* **Unified Core Engine (`process_and_download_items`):** Consolidated the execution pipeline so both the **User Profile Downloader** and **Direct URL Archive** share identical processing logic, eliminating code redundancy and guaranteeing identical HD results.
+* **Tabbed Dark Mode GUI:** Updated the Tkinter interface to a minimalist black & white dark theme featuring tabbed navigation (*User Profile Downloader*, *Direct URL Archive*, and *Settings*).
+* **Centralized Settings:** Added global controls for output directory, parallel download thread count, minimum image size threshold, and optional metadata generation.
+
+### 📸 Resolution Engine & Image Quality
+* **Byte-Level Dimension Verification:** Implemented in-memory image header parsing to accurately analyze pixel dimensions ($W \times H$) and ensure genuine high-resolution ($1200 \times 1600\text{px}+$) assets are preferred over compressed preview thumbnails.
+* **Automatic Quality Upgrades:** Automatically detects existing lower-resolution files (e.g., $600 \times 800\text{px}$) in target folders and replaces them whenever a higher-quality variant is retrieved.
+* **Seller-Profile API Lookup:** Added an automated fallback mechanism for direct item URLs that lack full high-resolution metadata, querying the seller's profile API to fetch original HD photo links.
+
+### 🛠 Fixes & Performance
+* **Optimized Network Strategy:** Prioritizes signed original API URLs before attempting fallback CDN path mutations, significantly reducing redundant HTTP requests.
+* **Preserved File Timestamps:** Accurate creation and modification timestamps are applied based on original Vinted item creation dates (compatible with Windows and Linux).
+
 ## [1.4.0] - 2026-10-15
 
 ### ✨ New Features
