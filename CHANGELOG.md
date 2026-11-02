@@ -2,6 +2,21 @@
 
 All notable changes to the Vinted Image Downloader project will be documented in this file.
 
+## [1.7.0]
+
+### Fixed
+* Direct item URLs download only the requested item; seller inventory and deep scans no longer add unrelated listings.
+* Active seller inventory scans use Vinted's current wardrobe endpoint and follow its pagination metadata instead of stopping after the first page.
+* Seller inventory is scanned before deep recovery, and public-profile link recovery stops after the first successful market instead of repeating the same profile cards across every market.
+* Pillow is included as a required dependency so enabled JPG conversion works in packaged builds. Failed conversions and non-image responses are rejected instead of being silently saved with an incorrect extension.
+* Higher-resolution CDN variants are prioritized across all source URL signatures before lower-resolution fallbacks.
+
+### Added
+* Photo filename inputs (for example `1787769113.webp` or `bec9cbc4.jpg`) are searched across Vinted market domains. Search results are only candidates: the item page must be accessible and its photo metadata must contain the filename before its images are downloaded. Publicly indexed sold or hidden listings may be found; deleted, private, or unindexed listings cannot be guaranteed.
+* Direct links to sold or hidden listings now fall back to public-index lookup across Vinted domains when the page and API do not expose photos. Recovery remains restricted to the exact ID in the supplied URL, including URLs with query parameters.
+
+### Fixed
+* Profile deep scans now inspect public member-page HTML for linked listings and search indexes by both seller name and numeric seller ID. Candidate pages must still identify the exact seller before they are queued.
 
 ## [1.6.0] - 2026-10-16
 

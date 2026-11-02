@@ -8,19 +8,25 @@ A powerful, fast, and automated desktop tool designed to bulk-download high-reso
 
 - **Tabbed Monochrome Dark Mode GUI & CLI:** Features a minimalist desktop interface (Tkinter-based) with tabbed navigation (*User Profile Downloader*, *Direct URL Archive*, and *Settings*) alongside full CLI support.
 - **Dual Mode Downloading (Profiles & Direct Links):** Seamlessly process entire user closets or target individual Vinted listing URLs—including active, sold, or archived items.
-- **Maximum Quality Image Engine:** In-memory byte-level dimension verification ($1200\times1600\text{px}+$ / original resolution) that automatically scores photo candidates and upgrades existing lower-quality thumbnails ($600\times800\text{px}$) on disk.
+- **Maximum Quality Image Engine:** Compares available image variants by actual pixel dimensions, selects the largest reachable version, and upgrades existing lower-resolution images when a better source is available.
 - **Dynamic & Original Filename Extraction:** Preserves authentic uploaded filenames directly from Vinted API fields or `Content-Disposition` headers, with fallback photo-ID naming, duplicate collision handling, and OS-safe filename sanitization.
 - **Clean & Comprehensive Item Metadata (`info.json`):** Generates structured JSON sidecar files with deep property resolution (`_first_nonempty_value`) to eliminate `null` values across product titles, descriptions, categories, brands, prices, sizes, condition states, favorites, view counts, and original creation dates.
 - **Technical Photo & EXIF Metadata Export (`photo_metadata.json`):** Optionally captures detailed image technicals, including pixel dimensions, color modes, file sizes, HTTP diagnostic headers, and camera EXIF data.
 - **🔒 Privacy-Conscious EXIF Processing:** Automatically strips sensitive GPS location data (`GPSInfo`) and private maker notes from photo metadata exports.
 - **Smart Username & ID Auto-Lookup:** Supports flexible inputs including full profile URLs (`https://www.vinted.de/member/...`), handle syntax (`@username`), raw usernames, or numeric user IDs.
 - **Preserved Upload Timestamps:** Folder naming scheme formatted as `YYYY-MM-DD_ItemID_Title`, applying exact item upload timestamps directly to Windows & Linux file attributes (`os.utime` + Win32 API).
-- **Multi-Threaded Performance & Settings:** Fully configurable parallel download threads (1–16 workers), custom output directory paths, and minimum image dimension filters to skip small UI icons/logos.
+- **Multi-Threaded Performance & Settings:** Detects the logical CPUs available to the process and uses that count as the initial thread setting. Thread count and other GUI settings are editable and automatically saved to `vinted_settings.json`.
+- **Paginated Seller Inventory:** Fetches current profile listings from Vinted's wardrobe endpoint and follows its pagination metadata so multi-page closets are not cut off.
+- **Hidden/Sold Profile Listings:** Profile scans also inspect public profile HTML for listing links and search public indexes using both the seller name and ID. Recovered listings must verify against the exact seller ID. Direct item links (including links with query parameters) remain limited to the requested item. This is best-effort: private or unindexed listings cannot be discovered.
+- **Photo Filename Reverse Search:** Accepts image filenames such as `1787769113.webp` or `bec9cbc4.jpg`, searches public indexes across Vinted markets, and downloads only listings whose accessible photo metadata confirms that filename. Publicly indexed sold or hidden listings may be found, but private, deleted, or unindexed listings are not guaranteed.
+- **JPG & Image Validation:** Includes Pillow for JPG conversion in packaged builds, validates image data rather than trusting its HTTP content type, and compares available CDN variants to select the largest reachable image. The source site may not expose a larger variant for every listing.
 - **Category & Keyword Closet Filtering:** Quickly filter profile downloads by specific keywords or categories (e.g., "Nike", "Dresses", "Jacket").
 
 ---
 
 ## 🚀 Getting Started
+
+The app stores settings beside the script or executable, writes timestamped debug logs to a `logs` folder when Debug Mode is enabled, and saves the browser session as `vinted_session.json` in the current working directory.
 
 ### Executable File (Recommended for Users)
 1. Download the latest `VintedImageDownloader.exe` from the [Releases Page](https://github.com/Miustone/Vinted-Image-Downloader/releases).
@@ -111,7 +117,9 @@ VintedImageDownloader.exe https://www.vinted.com/member/12345678-username -c "sh
 | `url` | Vinted profile URL | `https://www.vinted.com/member/...` |
 | `-c`, `--category` | Filter by keyword, category, or brand | `-c "jackets"` |
 | `-o`, `--output` | Custom download folder | `-o "C:\Pictures\Vinted"` |
+| `--threads` | Number of parallel download threads (defaults to the saved setting or detected CPU count) | `--threads 8` |
 | `--headless` | Run browser invisibly in background | `--headless` |
+| `--debug`, `--no-debug` | Enable or disable debug logging | `--debug` |
 
 ---
 
